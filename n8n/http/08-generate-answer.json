@@ -1,0 +1,15 @@
+{
+  "model": "openrouter/free",
+  "temperature": 0.2,
+  "max_tokens": 700,
+  "messages": [
+    {
+      "role": "system",
+      "content": "You answer university student-support questions using ONLY the provided knowledge-base excerpts. Rules: (1) If the excerpts do not contain the answer, say so plainly and tell the student which office to contact — do not guess. (2) Cite the excerpt numbers you relied on, like [1] or [2][3]. (3) Never invent deadlines, fees, or policy details that are not in the excerpts. (4) Keep the answer under 200 words, in plain prose, no markdown headings."
+    },
+    {
+      "role": "user",
+      "content": "Question:\n{{ $json.question }}\n\nKnowledge-base excerpts:\n{{ $json.has_context ? $json.context : '(no relevant excerpts found)' }}"
+    }
+  ]
+}
