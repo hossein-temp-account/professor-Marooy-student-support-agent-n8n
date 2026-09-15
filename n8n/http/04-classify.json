@@ -1,0 +1,36 @@
+{
+  "model": "openai/gpt-4o-mini",
+  "temperature": 0,
+  "max_tokens": 300,
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "ticket_classification",
+      "strict": true,
+      "schema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": ["registration","billing","exams","library","records","it-support","financial-aid","general"]
+          },
+          "priority":  { "type": "string", "enum": ["low","normal","high","urgent"] },
+          "confidence":{ "type": "number", "minimum": 0, "maximum": 1 },
+          "reasoning": { "type": "string", "maxLength": 240 }
+        },
+        "required": ["category","priority","confidence","reasoning"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "messages": [
+    {
+      "role": "system",
+      "content": "You classify inbound student-support questions for a university. Choose the single best category from the allowed enum. Priority reflects urgency to the student, not topic severity: 'urgent' is reserved for deadlines within 48h, blocked graduation, or a locked account they cannot recover. Never invent a category outside the enum. Confidence is your own calibrated estimate that the category is correct."
+    },
+    {
+      "role": "user",
+      "content": "{{ $json.question }}"
+    }
+  ]
+}
