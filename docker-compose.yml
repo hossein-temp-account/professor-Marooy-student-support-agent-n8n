@@ -1,0 +1,86 @@
+# =============================================================
+# n8n + MySQL on a private bridge network. MySQL is not exposed
+# to the host by default — only n8n needs it, reached by the
+# compose service name "mysql".
+#
+# Start:  docker compose up -d
+# Logs:   docker compose logs -f n8n
+# Stop:   docker compose down        (keeps volumes)
+# Nuke:   docker compose down -v     (DELETES DATA)
+# =============================================================
+
+services:
+
+  mysql:
+    image: mysql:8.4
+    container_name: support_mysql
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --innodb-ft-min-token-size=3
+      - --innodb-ft-enable-stopword=1
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Applied ONLY on first boot (empty data dir). Order matters.
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - support_net
+    # No `ports:` block. Uncomment only if you need a host client:
+    # ports:
+    #   - "127.0.0.1:3306:3306"
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: support_n8n
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      N8N_HOST: ${N8N_HOST}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: ${N8N_PROTOCOL}
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL}
+      GENERIC_TIMEZONE: ${GENERIC_TIMEZONE}
+      TZ: ${GENERIC_TIMEZONE}
+
+      # Losing this key makes every stored credential unreadable.
+      # Back it up separately from the volumes.
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+
+      N8N_USER_MANAGEMENT_DISABLED: "false"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "true"
+      N8N_RUNNERS_ENABLED: "true"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+    ports:
+      # Loopback only. Put a reverse proxy in front for public access.
+      - "127.0.0.1:5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n:/n8n:ro
+      - ./evals:/evals:ro
+    networks:
+      - support_net
+
+volumes:
+  mysql_data:
+  n8n_data:
+
+networks:
+  support_net:
+    driver: bridge
