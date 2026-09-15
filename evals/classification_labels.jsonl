@@ -1,0 +1,24 @@
+{"id":"reg-01","question":"How do I add a class after the registration deadline?","expected_category":"registration","expected_priority":"normal"}
+{"id":"reg-02","question":"I need to drop a course without it showing on my transcript.","expected_category":"registration","expected_priority":"normal"}
+{"id":"reg-03","question":"When does registration open for next semester?","expected_category":"registration","expected_priority":"low"}
+{"id":"bil-01","question":"My tuition payment didn't go through and the deadline is tomorrow.","expected_category":"billing","expected_priority":"urgent"}
+{"id":"bil-02","question":"Can I pay my tuition in installments instead of all at once?","expected_category":"billing","expected_priority":"normal"}
+{"id":"bil-03","question":"Why is there a hold on my account?","expected_category":"billing","expected_priority":"high"}
+{"id":"exm-01","question":"I missed my final exam because I was in the hospital.","expected_category":"exams","expected_priority":"high"}
+{"id":"exm-02","question":"When is the final exam schedule published?","expected_category":"exams","expected_priority":"low"}
+{"id":"exm-03","question":"Can I reschedule my final exam for a religious holiday?","expected_category":"exams","expected_priority":"normal"}
+{"id":"lib-01","question":"How many books can I check out at once?","expected_category":"library","expected_priority":"low"}
+{"id":"lib-02","question":"I have an overdue book. Can I still borrow?","expected_category":"library","expected_priority":"normal"}
+{"id":"lib-03","question":"How do I access journal databases from home?","expected_category":"library","expected_priority":"normal"}
+{"id":"rec-01","question":"I need my official transcript sent to a grad school and the deadline is Friday.","expected_category":"records","expected_priority":"urgent"}
+{"id":"rec-02","question":"How long does a transcript order take to process?","expected_category":"records","expected_priority":"low"}
+{"id":"rec-03","question":"I'm graduating this term. What do I need to do?","expected_category":"records","expected_priority":"high"}
+{"id":"its-01","question":"I'm locked out of my student portal account.","expected_category":"it-support","expected_priority":"high"}
+{"id":"its-02","question":"How do I connect to campus wifi on my laptop?","expected_category":"it-support","expected_priority":"low"}
+{"id":"its-03","question":"I can't get the VPN working on my phone.","expected_category":"it-support","expected_priority":"normal"}
+{"id":"aid-01","question":"My scholarship didn't disburse and I can't pay rent.","expected_category":"financial-aid","expected_priority":"urgent"}
+{"id":"aid-02","question":"What GPA do I need to keep my merit scholarship?","expected_category":"financial-aid","expected_priority":"normal"}
+{"id":"aid-03","question":"How do I appeal my financial aid package?","expected_category":"financial-aid","expected_priority":"normal"}
+{"id":"gen-01","question":"Where is the counseling center located?","expected_category":"general","expected_priority":"normal"}
+{"id":"gen-02","question":"Do you have a list of student clubs?","expected_category":"general","expected_priority":"low"}
+{"id":"gen-03","question":"Who do I contact about a parking permit?","expected_category":"general","expected_priority":"normal"}
