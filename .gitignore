@@ -1,0 +1,26 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# n8n local state
+n8n_data/
+.imported
+
+# exported workflows containing live credential references
+workflows/*.export.json
+
+# sqlite leftovers from any earlier experiment
+*.sqlite
+*.sqlite-journal
+
+# os / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# logs
+*.log
+npm-debug.log*
