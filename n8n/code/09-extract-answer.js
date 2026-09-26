@@ -1,7 +1,5 @@
 // Main workflow — Node 09 "Extract Answer"
 // Type: Code (Run Once for All Items)
-//
-<<<<<<< HEAD
 // Reached only via node 07b's "true" branch, i.e.
 // `sufficient_knowledge === true` — there IS reliable KB context,
 // so the AI is allowed to speak. The "false" branch runs node 09b
@@ -12,11 +10,10 @@
 // an `error` key instead of a choices array. A failure on this
 // branch still means no trustworthy answer went out, so it's
 // marked 'failed' — it does not silently claim success.
-=======
 // Pulls the answer text out of node 08's OpenRouter response.
 // Node 08 has On Error: Continue so a failure lands here with
 // an `error` key instead of a choices array.
->>>>>>> origin/main
+
 
 const ctx = $('Build Answer Context').first().json;
 const raw = $input.first().json;
