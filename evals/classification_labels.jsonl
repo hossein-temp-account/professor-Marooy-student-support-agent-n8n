@@ -39,9 +39,6 @@
 {"id":"rec-02","question":"صدور ریزنمرات چقدر طول می‌کشد؟","expected_category":"records","expected_priority":"low"}
 {"id":"rec-03","question":"این ترم فارغ‌التحصیل می‌شوم. چه کارهایی باید انجام دهم؟","expected_category":"records","expected_priority":"high"}
 {"id":"its-01","question":"حساب پورتال دانشجویی‌ام قفل شده است.","expected_category":"it-support","expected_priority":"high"}
-{"id":"its-02","question":"چطور با لپ‌تاپم به وای‌فای دانشگاه وصل شوم؟","expected_category":"it-support","expected_priority":"low"}
-{"id":"its-03","question":"نمی‌توانم VPN را روی گوشی‌ام فعال کنم.","expected_category":"it-support","expected_priority":"normal"}
-{"id":"aid-01","question":"بورسیه‌ام پرداخت نشده و نمی‌توانم اجاره‌ام را بدهم.","expected_category":"financial-aid","expected_priority":"urgent"}
 {"id":"aid-02","question":"برای حفظ بورسیه استحقاقی‌ام باید چه معدلی داشته باشم؟","expected_category":"financial-aid","expected_priority":"normal"}
 {"id":"aid-03","question":"چطور می‌توانم به بسته کمک‌هزینه تحصیلی‌ام اعتراض کنم؟","expected_category":"financial-aid","expected_priority":"normal"}
 {"id":"gen-01","question":"مرکز مشاوره دانشجویی کجاست؟","expected_category":"general","expected_priority":"normal"}
