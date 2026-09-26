@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-lang="fa">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>پیشخوان پشتیبانی دانشجویی · Student Support Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="masthead">
+    <div class="masthead__mark" aria-hidden="true">
+      <svg viewBox="0 0 48 48" width="34" height="34">
+        <path d="M24 4 44 14 24 24 4 14Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M12 19v11c0 4 5.4 7 12 7s12-3 12-7V19" fill="none" stroke="currentColor" stroke-width="2"/>
+        <line x1="44" y1="14" x2="44" y2="27" stroke="currentColor" stroke-width="2"/>
+      </svg>
+    </div>
+    <div class="masthead__title">
+      <span data-i18n="site.title">پیشخوان پشتیبانی دانشجویی</span>
+      <span class="masthead__sub" data-i18n="site.subtitle">دانشگاه — سامانه هوشمند رسیدگی به درخواست‌ها</span>
+    </div>
+    <div class="masthead__controls">
+      <button class="icon-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <g stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <line x1="12" y1="2.5" x2="12" y2="5"/>
+            <line x1="12" y1="19" x2="12" y2="21.5"/>
+            <line x1="2.5" y1="12" x2="5" y2="12"/>
+            <line x1="19" y1="12" x2="21.5" y2="12"/>
+            <line x1="4.9" y1="4.9" x2="6.6" y2="6.6"/>
+            <line x1="17.4" y1="17.4" x2="19.1" y2="19.1"/>
+            <line x1="4.9" y1="19.1" x2="6.6" y2="17.4"/>
+            <line x1="17.4" y1="6.6" x2="19.1" y2="4.9"/>
+          </g>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="lang-toggle" id="langToggle" type="button">EN</button>
+    </div>
+  </header>
+
+  <main class="desk">
+
+    <section class="panel panel--form" aria-labelledby="formHeading">
+      <h1 id="formHeading" data-i18n="form.heading">طرح درخواست جدید</h1>
+      <p class="panel__lede" data-i18n="form.lede">
+        درخواست خود را با جزئیات کافی بنویسید. اگر پاسخ در پایگاه دانش دانشگاه موجود باشد، بلافاصله پاسخ می‌گیرید؛ در غیر این صورت، درخواست شما برای کارشناسان ثبت می‌شود.
+      </p>
+
+      <form id="requestForm" novalidate>
+        <div class="field">
+          <label for="studentName" data-i18n="form.name">نام و نام خانوادگی</label>
+          <input id="studentName" name="student_name" type="text" autocomplete="name" required>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="studentId" data-i18n="form.studentId">شماره دانشجویی</label>
+            <input id="studentId" name="student_id" type="text" inputmode="numeric" required>
+          </div>
+          <div class="field">
+            <label for="email" data-i18n="form.email">ایمیل دانشگاهی</label>
+            <input id="email" name="student_email" type="email" autocomplete="email" required>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="question" data-i18n="form.question">متن درخواست</label>
+          <textarea id="question" name="question" rows="6" maxlength="4000" required
+            data-i18n-placeholder="form.questionPlaceholder"
+            placeholder="مثلاً: برای حذف اضطراری یک درس باید چه کاری انجام بدهم؟"></textarea>
+          <div class="field__hint">
+            <span id="charCount">0</span>/4000
+          </div>
+        </div>
+
+        <p class="field__error" id="formError" role="alert" hidden></p>
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <span data-i18n="form.submit">ثبت درخواست</span>
+        </button>
+      </form>
+    </section>
+
+    <section class="panel panel--result" aria-live="polite">
+      <div class="stub" id="stubIdle">
+        <div class="stub__seal" aria-hidden="true">
+          <svg viewBox="0 0 64 64" width="46" height="46">
+            <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="32" cy="32" r="21" fill="none" stroke="currentColor" stroke-width="1"/>
+          </svg>
+        </div>
+        <p data-i18n="result.idle">پاسخ به درخواست شما اینجا نمایش داده می‌شود.</p>
+      </div>
+
+      <div class="stub" id="stubLoading" hidden>
+        <div class="spinner" aria-hidden="true"></div>
+        <p data-i18n="result.loading">در حال بررسی درخواست...</p>
+      </div>
+
+      <div class="stub stub--outcome" id="stubOutcome" hidden>
+        <div class="stub__row">
+          <span class="stub__label" data-i18n="result.ticket">شماره درخواست</span>
+          <span class="stub__code" id="ticketCode">—</span>
+        </div>
+        <div class="stub__row">
+          <span class="stub__label" data-i18n="result.status">وضعیت</span>
+          <span class="status-badge" id="statusBadge">—</span>
+        </div>
+        <hr class="stub__rule">
+        <p class="stub__answer" id="answerText"></p>
+      </div>
+
+      <div class="stub stub--error" id="stubError" hidden>
+        <p data-i18n="result.error">در ارتباط با سامانه مشکلی پیش آمد. لطفاً دوباره تلاش کنید.</p>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <span data-i18n="footer.note">این سامانه یک پروژهٔ دانشگاهی برای نمایش گردش‌کار هوشمند n8n است.</span>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
