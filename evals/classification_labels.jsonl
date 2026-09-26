@@ -22,6 +22,7 @@
 {"id":"gen-01","question":"Where is the counseling center located?","expected_category":"general","expected_priority":"normal"}
 {"id":"gen-02","question":"Do you have a list of student clubs?","expected_category":"general","expected_priority":"low"}
 {"id":"gen-03","question":"Who do I contact about a parking permit?","expected_category":"general","expected_priority":"normal"}
+<<<<<<< HEAD
 {"id":"reg-01","question":"چطور می‌توانم بعد از مهلت ثبت‌نام، یک درس اضافه کنم؟","expected_category":"registration","expected_priority":"normal"}
 {"id":"reg-02","question":"می‌خواهم یک درس را حذف کنم بدون اینکه در کارنامه‌ام ثبت شود.","expected_category":"registration","expected_priority":"normal"}
 {"id":"reg-03","question":"ثبت‌نام ترم بعد از چه زمانی شروع می‌شود؟","expected_category":"registration","expected_priority":"low"}
@@ -46,3 +47,5 @@
 {"id":"gen-01","question":"مرکز مشاوره دانشجویی کجاست؟","expected_category":"general","expected_priority":"normal"}
 {"id":"gen-02","question":"لیستی از انجمن‌های دانشجویی دارید؟","expected_category":"general","expected_priority":"low"}
 {"id":"gen-03","question":"برای مجوز پارکینگ با چه کسی باید تماس بگیرم؟","expected_category":"general","expected_priority":"normal"}
+=======
+>>>>>>> origin/main

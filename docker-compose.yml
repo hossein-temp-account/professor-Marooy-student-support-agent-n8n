@@ -66,6 +66,7 @@ services:
       N8N_VERSION_NOTIFICATIONS_ENABLED: "true"
       N8N_RUNNERS_ENABLED: "true"
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
+<<<<<<< HEAD
       # KB_MATCH_THRESHOLD must be explicitly allowlisted, since
       # N8N_BLOCK_ENV_ACCESS_IN_NODE=true otherwise hides all
       # process env vars from $env inside Code nodes. It's a
@@ -74,6 +75,8 @@ services:
       # file and the allowlist.
       N8N_ENV_ACCESS_ALLOWLIST: "KB_MATCH_THRESHOLD"
       KB_MATCH_THRESHOLD: ${KB_MATCH_THRESHOLD:-4.0}
+=======
+>>>>>>> origin/main
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
     ports:
       # Loopback only. Put a reverse proxy in front for public access.

@@ -24,4 +24,7 @@ Thumbs.db
 # logs
 *.log
 npm-debug.log*
+<<<<<<< HEAD
 n8n/*.json
+=======
+>>>>>>> origin/main

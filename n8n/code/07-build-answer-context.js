@@ -5,12 +5,15 @@
 // drops very weak matches. Node 06's error output also lands
 // here (On Error: Continue, error output wired to this node),
 // which is why we filter out items with an `error` key.
+<<<<<<< HEAD
 //
 // `sufficient_knowledge` is the one decision the rest of the
 // workflow trusts. Node 07b (an IF node) branches on it directly,
 // so node 08 (the answer LLM) is structurally unreachable when
 // this is false — not merely told to refuse in its prompt.
 const KB_MATCH_THRESHOLD = Number($env.KB_MATCH_THRESHOLD ?? 4.0);
+=======
+>>>>>>> origin/main
 
 const cls = $('Validate Classification').first().json;
 const raw = $input.all();
@@ -23,6 +26,7 @@ const kbFailed = raw.length > 0 && raw[0].json.error != null;
 const topScore = hits.length ? Number(hits[0].relevance) : 0;
 const kept = hits.filter(h => topScore > 0 && Number(h.relevance) >= topScore * 0.15);
 
+<<<<<<< HEAD
 // Absolute cutoff on top of the relative one above: this is the
 // actual "is this reliable enough to auto-answer" gate.
 // KB_MATCH_THRESHOLD is corpus-dependent — tune it against your
@@ -38,6 +42,8 @@ const sufficient_knowledge =
   topScore >= KB_MATCH_THRESHOLD &&
   cls.confidence >= 0.70;
 
+=======
+>>>>>>> origin/main
 const context = kept
   .map((h, i) => `[${i + 1}] ${h.title} (category: ${h.category})\n${h.content}`)
   .join('\n\n')
@@ -55,7 +61,10 @@ return [{
     kb_failed:      kbFailed,
     matched_kb_ids: kept.map(h => h.id),
     has_context:    kept.length > 0,
+<<<<<<< HEAD
     sufficient_knowledge,
+=======
+>>>>>>> origin/main
     context,
   },
 }];

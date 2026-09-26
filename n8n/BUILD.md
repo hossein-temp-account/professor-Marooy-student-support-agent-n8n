@@ -50,15 +50,21 @@ reference it.
 | 05 | Validate Classification | Code | `code/05-validate-classification.js` |
 | 06 | Search Knowledge Base | MySQL | Execute SQL, `sql/06-search-kb.sql`, 2 params |
 | 07 | Build Answer Context | Code | `code/07-build-answer-context.js` |
+<<<<<<< HEAD
 | 07b | Check Knowledge Match | IF | Condition (Boolean): `{{ $json.sufficient_knowledge }}` is `true` |
 | 08 | Generate Answer *(true branch only)* | HTTP Request | POST, `http/08-generate-answer.json`, Header Auth `OpenRouter` |
 | 09 | Extract Answer *(true branch only)* | Code | `code/09-extract-answer.js` |
 | 09b | Create Human Ticket *(false branch only)* | Code | `code/09b-create-human-ticket.js` |
 | — | Merge | Merge | 2 inputs: node 09's output and node 09b's output |
+=======
+| 08 | Generate Answer | HTTP Request | POST, `http/08-generate-answer.json`, Header Auth `OpenRouter` |
+| 09 | Extract Answer | Code | `code/09-extract-answer.js` |
+>>>>>>> origin/main
 | 10 | Update Ticket | MySQL | Update, key `id` = `{{ $json.ticket_id }}` |
 | 11 | Compose Reply | Code | `code/11-compose-reply.js` |
 | 12 | Respond to Webhook | Respond to Webhook | JSON, body `{{ $json }}`, code 200 |
 
+<<<<<<< HEAD
 **This is the project's central guarantee, made structural rather
 than a prompt request:** node 07b sits between the search and the
 answer LLM. Only its "true" output connects to node 08. There is no
@@ -78,6 +84,8 @@ score at or above `KB_MATCH_THRESHOLD`, and classification confidence
 ≥ 0.70. That last condition is why an ambiguous question is escalated
 even if a loose keyword match exists in the knowledge base.
 
+=======
+>>>>>>> origin/main
 ### Node 10 column map
 
 | Column | Value |
@@ -85,6 +93,7 @@ even if a loose keyword match exists in the knowledge base.
 | `category` | `{{ $json.category }}` |
 | `priority` | `{{ $json.priority }}` |
 | `confidence` | `{{ $json.confidence }}` |
+<<<<<<< HEAD
 | `status` | `{{ $json.status }}` |
 | `answer` | `{{ $json.answer }}` |
 | `matched_kb_ids` | `{{ JSON.stringify($json.matched_kb_ids ?? []) }}` |
@@ -107,6 +116,15 @@ unset. Raise it to escalate more borderline matches to a human;
 lower it to auto-resolve more. Tune it against real knowledge-base
 content and `evals/classification_labels.jsonl` — MySQL's relevance
 score is corpus-relative, not a calibrated probability.
+=======
+| `status` | `{{ $json.answered ? 'answered' : 'failed' }}` |
+| `answer` | `{{ $json.answer }}` |
+| `matched_kb_ids` | `{{ JSON.stringify($json.matched_kb_ids) }}` |
+| `error_message` | `{{ $json.kb_failed ? 'kb search failed' : $json.failure }}` |
+
+`matched_kb_ids` must be a string. The driver will reject a raw
+array.
+>>>>>>> origin/main
 
 ### Error / retry policy
 
@@ -119,10 +137,15 @@ score is corpus-relative, not a calibrated probability.
 | 05 Validate | Stop | 0 | — | — |
 | 06 Search KB | Continue (error output) | 2 | 1000ms | — |
 | 07 Build Context | Stop | 0 | — | — |
+<<<<<<< HEAD
 | 07b Check Knowledge Match | Stop | 0 | — | — |
 | 08 Generate | Continue (error output) | 3 | 2000ms | 60000ms |
 | 09 Extract | Stop | 0 | — | — |
 | 09b Create Human Ticket | Stop | 0 | — | — |
+=======
+| 08 Generate | Continue (error output) | 3 | 2000ms | 60000ms |
+| 09 Extract | Stop | 0 | — | — |
+>>>>>>> origin/main
 | 10 Update | Stop | 3 | 1000ms | — |
 | 11 Compose | Stop | 0 | — | — |
 | 12 Respond | Stop | 0 | — | — |

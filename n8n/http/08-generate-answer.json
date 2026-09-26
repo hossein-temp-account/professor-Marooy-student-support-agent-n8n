@@ -1,7 +1,13 @@
 {
+<<<<<<< HEAD
   "model": "mercury-2.5",
   "temperature": 0.2,
   "max_tokens": 2000,
+=======
+  "model": "openrouter/free",
+  "temperature": 0.2,
+  "max_tokens": 700,
+>>>>>>> origin/main
   "messages": [
     {
       "role": "system",
