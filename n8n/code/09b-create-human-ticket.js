@@ -1,40 +1,44 @@
-// Main workflow — Node 09b "Create Human Ticket"
-// Type: Code (Run Once for All Items)
-//
-// Reached only via node 07b's "false" branch, i.e.
-// `sufficient_knowledge === false`. Node 08 (the answer LLM) is
-// never called on this path — there is no AI-generated text here
-// that could hallucinate a policy, deadline, or fee. This node
-// only composes the "your request has been registered" message.
-//
-// Detects Persian input with a simple Unicode range check so the
-// acknowledgement is at least readable in the student's own
-// language. A real deployment would add a language field to the
-// classification schema (node 04) instead of guessing here.
+// Node 09b "No KB Match" -- Code node (Run Once for All Items)
+// Kept in sync with n8n/workflow-export.json. Edit the node in n8n, then re-export.
 
-const d = $('Build Answer Context').first().json;
+// Runs only when Build Answer Context found nothing above the
+// relevance cutoff (has_context === false). Skips the LLM call
+// entirely and writes an explicit, honest 'not in the knowledge
+// base' answer instead of letting the model improvise or return
+// an empty/blank response.
+function sqlEscape(value) {
+  if (value === null || value === undefined) return 'NULL';
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : 'NULL';
+  if (typeof value === 'boolean') return value ? '1' : '0';
+  const str = typeof value === 'string' ? value : JSON.stringify(value);
+  const escaped = str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  return "'" + escaped + "'";
+}
 
-const isPersian = /[\u0600-\u06FF]/.test(d.question || '');
+const ctx = $input.first().json;
 
-const reason = d.kb_failed
-  ? (isPersian
-      ? 'در حال حاضر امکان جست‌وجو در پایگاه دانش وجود ندارد.'
-      : 'The knowledge base could not be searched right now.')
-  : (isPersian
-      ? 'اطلاعات کافی برای پاسخ‌گویی خودکار به این درخواست در پایگاه دانش موجود نبود.'
-      : 'No sufficiently reliable information was found in the knowledge base for this request.');
+const answer = "This question isn't covered in the knowledge base yet. Your request has been logged and a staff member will follow up directly.";
+const answered = false;
+const status = 'escalated';
+const matchedKbJson = JSON.stringify(ctx.matched_kb_ids ?? []);
+const errorMessage = `escalated: ${ctx.insufficient_reason ?? 'unknown'} (top_score=${ctx.top_score}, threshold=${ctx.kb_threshold}, confidence=${ctx.confidence})`;
 
-const message = isPersian
-  ? `درخواست شما در سامانه ثبت شد.\n\nشماره تیکت: ${d.ticket_id}\n\n${reason} درخواست شما برای بررسی توسط کارشناس ثبت شد.`
-  : `Your request has been registered.\n\nTicket ID: ${d.ticket_id}\n\n${reason} It has been forwarded for human review.`;
+const update_sql = `UPDATE ticket_requests
+SET
+  category       = ${sqlEscape(ctx.category)},
+  priority       = ${sqlEscape(ctx.priority)},
+  confidence     = ${sqlEscape(ctx.confidence)},
+  status         = ${sqlEscape(status)},
+  answer         = ${sqlEscape(answer)},
+  matched_kb_ids = ${sqlEscape(matchedKbJson)},
+  error_message  = ${sqlEscape(errorMessage)}
+WHERE idempotency_key = ${sqlEscape(ctx.idempotency_key)};`;
 
-return [{
-  json: {
-    ...d,
-    answer:     message,
-    answered:   false,
-    status:     'escalated',
-    model_used: null,
-    usage:      null,
-  },
-}];
+return [{ json: {
+  ...ctx,
+  answer,
+  answered,
+  model_used: null,
+  usage: null,
+  update_sql,
+}}];

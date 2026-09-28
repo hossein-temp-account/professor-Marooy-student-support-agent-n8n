@@ -1,0 +1,15 @@
+{
+  "name": "support-agent-admin",
+  "version": "1.0.1",
+  "private": true,
+  "description": "Minimal admin panel: review questions the bot couldn't answer and add them to the knowledge base.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "mysql2": "^3.11.0",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

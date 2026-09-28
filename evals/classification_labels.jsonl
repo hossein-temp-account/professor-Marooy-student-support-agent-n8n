@@ -22,26 +22,3 @@
 {"id":"gen-01","question":"Where is the counseling center located?","expected_category":"general","expected_priority":"normal"}
 {"id":"gen-02","question":"Do you have a list of student clubs?","expected_category":"general","expected_priority":"low"}
 {"id":"gen-03","question":"Who do I contact about a parking permit?","expected_category":"general","expected_priority":"normal"}
-
-{"id":"reg-01","question":"چطور می‌توانم بعد از مهلت ثبت‌نام، یک درس اضافه کنم؟","expected_category":"registration","expected_priority":"normal"}
-{"id":"reg-02","question":"می‌خواهم یک درس را حذف کنم بدون اینکه در کارنامه‌ام ثبت شود.","expected_category":"registration","expected_priority":"normal"}
-{"id":"reg-03","question":"ثبت‌نام ترم بعد از چه زمانی شروع می‌شود؟","expected_category":"registration","expected_priority":"low"}
-{"id":"bil-01","question":"پرداخت شهریه‌ام انجام نشد و مهلتش فرداست.","expected_category":"billing","expected_priority":"urgent"}
-{"id":"bil-02","question":"آیا می‌توانم شهریه را قسطی پرداخت کنم به‌جای یک‌جا؟","expected_category":"billing","expected_priority":"normal"}
-{"id":"bil-03","question":"چرا حسابم مسدود (Hold) شده است؟","expected_category":"billing","expected_priority":"high"}
-{"id":"exm-01","question":"به‌خاطر بستری‌شدن در بیمارستان امتحان پایان‌ترمم را از دست دادم.","expected_category":"exams","expected_priority":"high"}
-{"id":"exm-02","question":"برنامه امتحانات پایان‌ترم چه زمانی منتشر می‌شود؟","expected_category":"exams","expected_priority":"low"}
-{"id":"exm-03","question":"می‌توانم امتحان پایان‌ترمم را به‌خاطر یک مناسبت مذهبی جابه‌جا کنم؟","expected_category":"exams","expected_priority":"normal"}
-{"id":"lib-01","question":"چند کتاب می‌توانم همزمان امانت بگیرم؟","expected_category":"library","expected_priority":"low"}
-{"id":"lib-02","question":"یک کتاب دیرکرد دارم. باز هم می‌توانم امانت بگیرم؟","expected_category":"library","expected_priority":"normal"}
-{"id":"lib-03","question":"چطور از خانه به پایگاه‌های داده مجلات دسترسی پیدا کنم؟","expected_category":"library","expected_priority":"normal"}
-{"id":"rec-01","question":"باید ریزنمرات رسمی‌ام را برای یک دانشگاه تا جمعه ارسال کنم.","expected_category":"records","expected_priority":"urgent"}
-{"id":"rec-02","question":"صدور ریزنمرات چقدر طول می‌کشد؟","expected_category":"records","expected_priority":"low"}
-{"id":"rec-03","question":"این ترم فارغ‌التحصیل می‌شوم. چه کارهایی باید انجام دهم؟","expected_category":"records","expected_priority":"high"}
-{"id":"its-01","question":"حساب پورتال دانشجویی‌ام قفل شده است.","expected_category":"it-support","expected_priority":"high"}
-{"id":"aid-02","question":"برای حفظ بورسیه استحقاقی‌ام باید چه معدلی داشته باشم؟","expected_category":"financial-aid","expected_priority":"normal"}
-{"id":"aid-03","question":"چطور می‌توانم به بسته کمک‌هزینه تحصیلی‌ام اعتراض کنم؟","expected_category":"financial-aid","expected_priority":"normal"}
-{"id":"gen-01","question":"مرکز مشاوره دانشجویی کجاست؟","expected_category":"general","expected_priority":"normal"}
-{"id":"gen-02","question":"لیستی از انجمن‌های دانشجویی دارید؟","expected_category":"general","expected_priority":"low"}
-{"id":"gen-03","question":"برای مجوز پارکینگ با چه کسی باید تماس بگیرم؟","expected_category":"general","expected_priority":"normal"}
-

@@ -1,12 +1,15 @@
 # =============================================================
-# n8n + MySQL on a private bridge network. MySQL is not exposed
-# to the host by default — only n8n needs it, reached by the
-# compose service name "mysql".
+# n8n + MySQL + admin panel, on a private bridge network. MySQL
+# is not exposed to the host by default — only n8n and the admin
+# service need it, both reached by the compose service name
+# "mysql".
 #
-# Start:  docker compose up -d
-# Logs:   docker compose logs -f n8n
-# Stop:   docker compose down        (keeps volumes)
-# Nuke:   docker compose down -v     (DELETES DATA)
+# Start:   docker compose up -d
+# Logs:    docker compose logs -f admin
+# Rebuild: docker compose up -d --force-recreate admin
+#          (use this after editing anything under ./admin)
+# Stop:    docker compose down        (keeps volumes)
+# Nuke:    docker compose down -v     (DELETES DATA)
 # =============================================================
 
 services:
@@ -66,17 +69,8 @@ services:
       N8N_VERSION_NOTIFICATIONS_ENABLED: "true"
       N8N_RUNNERS_ENABLED: "true"
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
-<<<<<<< HEAD
-      # KB_MATCH_THRESHOLD must be explicitly allowlisted, since
-      # N8N_BLOCK_ENV_ACCESS_IN_NODE=true otherwise hides all
-      # process env vars from $env inside Code nodes. It's a
-      # tuning knob (see node 07 / n8n/BUILD.md), not a secret
-      # like the OpenRouter key, which stays out of both this
-      # file and the allowlist.
-      N8N_ENV_ACCESS_ALLOWLIST: "KB_MATCH_THRESHOLD"
-      KB_MATCH_THRESHOLD: ${KB_MATCH_THRESHOLD:-4.0}
-=======
->>>>>>> origin/main
+      # KB_MATCH_THRESHOLD is set directly inside the "Build Answer Context"
+      # Code node (not via $env), because the block above hides $env.
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
     ports:
       # Loopback only. Put a reverse proxy in front for public access.
@@ -88,9 +82,52 @@ services:
     networks:
       - support_net
 
+  admin:
+    image: node:20-alpine
+    container_name: support_admin
+    restart: unless-stopped
+    working_dir: /app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    # Installs on every boot so it always matches package.json on
+    # the bind mount below, then starts the server. node_modules
+    # lives in its own named volume (admin_node_modules), not in
+    # the bind mount, so a host/container OS mismatch (e.g. native
+    # deps built on macOS/Windows) never leaks into the container.
+    command: sh -c "npm install --omit=dev --no-audit --no-fund && node server.js"
+    environment:
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET}
+      ADMIN_PORT: 4000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: ${MYSQL_DATABASE}
+    ports:
+      # Loopback only, same posture as n8n above. Put a reverse
+      # proxy in front (path /admin) for public access, or tunnel
+      # it the same way you tunnel n8n.
+      - "127.0.0.1:4000:4000"
+    volumes:
+      - ./admin:/app
+      # Keep node_modules inside its own volume, not overwritten by
+      # the bind mount above (avoids host/container arch mismatches).
+      # If the admin container ever misbehaves after you change
+      # admin/package.json, wipe just this volume and recreate:
+      #   docker compose down admin
+      #   docker volume rm <project>_admin_node_modules
+      #   docker compose up -d admin
+      - admin_node_modules:/app/node_modules
+    networks:
+      - support_net
+
 volumes:
   mysql_data:
   n8n_data:
+  admin_node_modules:
 
 networks:
   support_net:

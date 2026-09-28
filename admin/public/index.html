@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>پنل مدیریت پشتیبانی دانشجویی</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/admin/style.css">
+</head>
+<body>
+
+  <!-- ---------- Login screen ---------- -->
+  <main id="loginScreen" class="screen">
+    <form id="loginForm" class="login-card">
+      <h1>پنل مدیریت</h1>
+      <p class="subtitle">ورود کارشناس پشتیبانی</p>
+
+      <label for="username">نام کاربری</label>
+      <input id="username" type="text" autocomplete="username" required>
+
+      <label for="password">رمز عبور</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+
+      <button type="submit">ورود</button>
+      <p id="loginError" class="error-text" hidden></p>
+    </form>
+  </main>
+
+  <!-- ---------- Panel screen ---------- -->
+  <main id="panelScreen" class="screen" hidden>
+    <header class="panel-header">
+      <h1>سؤالات بی‌پاسخ</h1>
+      <div class="panel-header__actions">
+        <button id="refreshBtn" type="button" class="btn-secondary">به‌روزرسانی</button>
+        <button id="logoutBtn" type="button" class="btn-secondary">خروج</button>
+      </div>
+    </header>
+
+    <p class="panel-note">
+      این سؤالات را بات در پایگاه دانش پیدا نکرده و برای بررسی شما ثبت شده‌اند.
+      با پاسخ دادن به هرکدام، هم پاسخ به دانشجو ثبت می‌شود و هم به‌صورت خودکار
+      به پایگاه دانش اضافه می‌شود تا دفعهٔ بعد بات خودش پاسخ دهد.
+    </p>
+
+    <div id="ticketList" class="ticket-list"></div>
+    <p id="emptyState" class="empty-state" hidden>فعلاً هیچ سؤال بی‌پاسخی ثبت نشده است. 🎉</p>
+  </main>
+
+  <!-- ---------- Answer modal ---------- -->
+  <div id="answerModal" class="modal" hidden>
+    <div class="modal__backdrop"></div>
+    <form id="answerForm" class="modal__card">
+      <h2>پاسخ به سؤال</h2>
+      <p id="modalQuestion" class="modal__question"></p>
+
+      <label for="ansTitle">عنوان پاسخ (برای پایگاه دانش)</label>
+      <input id="ansTitle" type="text" required>
+
+      <label for="ansContent">متن کامل پاسخ</label>
+      <textarea id="ansContent" rows="5" required></textarea>
+
+      <label for="ansKeywords">کلیدواژه‌ها (با کاما جدا کنید)</label>
+      <input id="ansKeywords" type="text" placeholder="مثلاً: رمز عبور, پورتال, ورود">
+
+      <label for="ansCategory">دسته‌بندی</label>
+      <select id="ansCategory">
+        <option value="registration">ثبت‌نام</option>
+        <option value="billing">مالی</option>
+        <option value="exams">امتحانات</option>
+        <option value="library">کتابخانه</option>
+        <option value="records">سوابق تحصیلی</option>
+        <option value="it-support">پشتیبانی فنی</option>
+        <option value="financial-aid">کمک‌هزینه</option>
+        <option value="general" selected>عمومی</option>
+      </select>
+
+      <div class="modal__actions">
+        <button type="button" id="cancelAnswerBtn" class="btn-secondary">انصراف</button>
+        <button type="submit" class="btn-primary">ثبت پاسخ</button>
+      </div>
+      <p id="answerError" class="error-text" hidden></p>
+    </form>
+  </div>
+
+  <script src="/admin/script.js"></script>
+</body>
+</html>

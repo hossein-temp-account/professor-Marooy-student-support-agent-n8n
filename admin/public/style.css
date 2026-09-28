@@ -1,0 +1,255 @@
+:root {
+  --navy: #1f2a44;
+  --navy-deep: #141b2e;
+  --parchment: #efe6d6;
+  --parchment-deep: #e5d9c0;
+  --brass: #b08a4e;
+  --brass-deep: #8c6c36;
+  --ink: #2a2a2a;
+  --muted: #6b6b6b;
+  --line: #e2dbca;
+  --ok: #3f7d4a;
+  --ok-bg: #f0f6f1;
+  --pending: #9c6b12;
+  --pending-bg: #fbf3e4;
+  --error: #b3261e;
+  --error-bg: #fbecea;
+  --radius: 10px;
+  --font: "Vazirmatn", Tahoma, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: #faf8f3;
+  color: var(--ink);
+}
+
+.screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* [hidden] must always win over .screen's own `display: flex`.
+   Both are single-class/attribute selectors (specificity 0,1,0),
+   so without `!important` here the later rule above wins the tie
+   and the element stays visible even with the `hidden` attribute
+   set from JS (screens stack on top of each other). */
+[hidden] {
+  display: none !important;
+}
+
+/* ---------- Login ---------- */
+#loginScreen {
+  align-items: center;
+  justify-content: center;
+  background: var(--navy);
+  padding: 24px;
+}
+.login-card {
+  background: white;
+  border-radius: var(--radius);
+  padding: 32px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+.login-card h1 {
+  margin: 0 0 4px;
+  font-size: 1.4rem;
+  color: var(--navy);
+}
+.login-card .subtitle {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.login-card label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 14px 0 6px;
+}
+.login-card input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+.login-card button {
+  width: 100%;
+  margin-top: 20px;
+  padding: 11px;
+  border: none;
+  border-radius: 8px;
+  background: var(--brass);
+  color: white;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.login-card button:hover { background: var(--brass-deep); }
+
+/* ---------- Panel ---------- */
+#panelScreen {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+  width: 100%;
+}
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.panel-header h1 {
+  font-size: 1.5rem;
+  color: var(--navy);
+  margin: 0;
+}
+.panel-header__actions { display: flex; gap: 10px; }
+.btn-secondary, .btn-primary {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+.btn-secondary {
+  border: 1px solid var(--line);
+  background: white;
+  color: var(--ink);
+}
+.btn-secondary:hover { background: #f4f1e9; }
+.btn-primary {
+  border: none;
+  background: var(--brass);
+  color: white;
+  font-weight: 700;
+}
+.btn-primary:hover { background: var(--brass-deep); }
+
+.panel-note {
+  background: var(--pending-bg);
+  border: 1px solid var(--pending);
+  color: var(--pending);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  margin: 18px 0 24px;
+}
+
+.ticket-list { display: flex; flex-direction: column; gap: 14px; }
+
+.ticket-card {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+.ticket-card__meta {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.ticket-card__question {
+  font-size: 1rem;
+  color: var(--ink);
+  margin: 0 0 12px;
+  line-height: 1.6;
+}
+.ticket-card__footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--muted);
+  padding: 60px 0;
+  font-size: 1rem;
+}
+
+.error-text {
+  color: var(--error);
+  background: var(--error-bg);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  margin-top: 14px;
+}
+
+/* ---------- Modal ---------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 10;
+}
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 27, 46, 0.55);
+}
+.modal__card {
+  position: relative;
+  background: white;
+  border-radius: var(--radius);
+  padding: 26px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+}
+.modal__card h2 {
+  margin: 0 0 6px;
+  color: var(--navy);
+  font-size: 1.2rem;
+}
+.modal__question {
+  background: #f4f1e9;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  color: var(--ink);
+  margin: 0 0 10px;
+}
+.modal__card label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 12px 0 6px;
+}
+.modal__card input,
+.modal__card textarea,
+.modal__card select {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-family: inherit;
+  resize: vertical;
+}
+.modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}

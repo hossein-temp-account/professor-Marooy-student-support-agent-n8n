@@ -50,21 +50,15 @@ reference it.
 | 05 | Validate Classification | Code | `code/05-validate-classification.js` |
 | 06 | Search Knowledge Base | MySQL | Execute SQL, `sql/06-search-kb.sql`, 2 params |
 | 07 | Build Answer Context | Code | `code/07-build-answer-context.js` |
-<<<<<<< HEAD
 | 07b | Check Knowledge Match | IF | Condition (Boolean): `{{ $json.sufficient_knowledge }}` is `true` |
 | 08 | Generate Answer *(true branch only)* | HTTP Request | POST, `http/08-generate-answer.json`, Header Auth `OpenRouter` |
 | 09 | Extract Answer *(true branch only)* | Code | `code/09-extract-answer.js` |
 | 09b | Create Human Ticket *(false branch only)* | Code | `code/09b-create-human-ticket.js` |
 | — | Merge | Merge | 2 inputs: node 09's output and node 09b's output |
-=======
-| 08 | Generate Answer | HTTP Request | POST, `http/08-generate-answer.json`, Header Auth `OpenRouter` |
-| 09 | Extract Answer | Code | `code/09-extract-answer.js` |
->>>>>>> origin/main
 | 10 | Update Ticket | MySQL | Update, key `id` = `{{ $json.ticket_id }}` |
 | 11 | Compose Reply | Code | `code/11-compose-reply.js` |
 | 12 | Respond to Webhook | Respond to Webhook | JSON, body `{{ $json }}`, code 200 |
 
-<<<<<<< HEAD
 **This is the project's central guarantee, made structural rather
 than a prompt request:** node 07b sits between the search and the
 answer LLM. Only its "true" output connects to node 08. There is no
@@ -80,12 +74,13 @@ the Update Ticket node.
 
 `sufficient_knowledge` (computed in node 07) requires all of:
 KB search didn't fail, at least one kept hit, the top hit's relevance
-score at or above `KB_MATCH_THRESHOLD`, and classification confidence
-≥ 0.70. That last condition is why an ambiguous question is escalated
-even if a loose keyword match exists in the knowledge base.
+score at or above `KB_MATCH_THRESHOLD` (default `0.05` -- effectively
+"the fulltext search matched something"), and, only when the classifier
+ran successfully, classification confidence >= `MIN_CLASS_CONFIDENCE`
+(default `0.3`). A failed or unparsable classification does not block an
+answer. When it is false the reason is stored in `error_message` and
+returned in the response's `debug.reason`.
 
-=======
->>>>>>> origin/main
 ### Node 10 column map
 
 | Column | Value |
@@ -93,7 +88,6 @@ even if a loose keyword match exists in the knowledge base.
 | `category` | `{{ $json.category }}` |
 | `priority` | `{{ $json.priority }}` |
 | `confidence` | `{{ $json.confidence }}` |
-<<<<<<< HEAD
 | `status` | `{{ $json.status }}` |
 | `answer` | `{{ $json.answer }}` |
 | `matched_kb_ids` | `{{ JSON.stringify($json.matched_kb_ids ?? []) }}` |
@@ -106,25 +100,16 @@ string; the driver rejects a raw array.
 
 ### Configuration
 
-`KB_MATCH_THRESHOLD` (read by node 07 via `$env`) is the one knob
-controlling how strong a knowledge-base match must be before the AI
-is allowed to answer automatically. It's set in `.env` / passed
-through `docker-compose.yml`, and explicitly allowlisted there via
-`N8N_ENV_ACCESS_ALLOWLIST` (everything else stays blocked from
-`$env` by `N8N_BLOCK_ENV_ACCESS_IN_NODE=true`). Defaults to `4.0` if
-unset. Raise it to escalate more borderline matches to a human;
-lower it to auto-resolve more. Tune it against real knowledge-base
-content and `evals/classification_labels.jsonl` — MySQL's relevance
-score is corpus-relative, not a calibrated probability.
-=======
-| `status` | `{{ $json.answered ? 'answered' : 'failed' }}` |
-| `answer` | `{{ $json.answer }}` |
-| `matched_kb_ids` | `{{ JSON.stringify($json.matched_kb_ids) }}` |
-| `error_message` | `{{ $json.kb_failed ? 'kb search failed' : $json.failure }}` |
-
-`matched_kb_ids` must be a string. The driver will reject a raw
-array.
->>>>>>> origin/main
+`KB_MATCH_THRESHOLD` and `MIN_CLASS_CONFIDENCE` are constants at the top
+of the "Build Answer Context" Code node (not env vars: `$env` is blocked
+inside Code nodes by `N8N_BLOCK_ENV_ACCESS_IN_NODE=true`). InnoDB
+relevance scores are corpus-relative and small on a small knowledge
+base (an absolute cutoff of 4.0 rejected valid questions), so the
+default only requires a real match; the answer LLM is instructed to say
+"not covered" when the excerpts don't contain the answer. Raise
+`KB_MATCH_THRESHOLD` to escalate more borderline matches. Inspect
+`debug.all_scores` in the webhook response to choose a value. The
+`debug` block in "Compose Reply" can be deleted once tuned.
 
 ### Error / retry policy
 
@@ -137,15 +122,10 @@ array.
 | 05 Validate | Stop | 0 | — | — |
 | 06 Search KB | Continue (error output) | 2 | 1000ms | — |
 | 07 Build Context | Stop | 0 | — | — |
-<<<<<<< HEAD
 | 07b Check Knowledge Match | Stop | 0 | — | — |
 | 08 Generate | Continue (error output) | 3 | 2000ms | 60000ms |
 | 09 Extract | Stop | 0 | — | — |
 | 09b Create Human Ticket | Stop | 0 | — | — |
-=======
-| 08 Generate | Continue (error output) | 3 | 2000ms | 60000ms |
-| 09 Extract | Stop | 0 | — | — |
->>>>>>> origin/main
 | 10 Update | Stop | 3 | 1000ms | — |
 | 11 Compose | Stop | 0 | — | — |
 | 12 Respond | Stop | 0 | — | — |

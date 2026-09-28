@@ -1,0 +1,427 @@
+{
+  "name": "Student Support Agent (fixed SQL binding)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "student-support",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        32,
+        0
+      ],
+      "id": "a67f380c-3da1-4d7b-9d78-6e7f573a345c",
+      "name": "Webhook",
+      "webhookId": "11e710e3-8ff1-45fa-a4aa-df0ce0265f76"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Escapes a JS value into a literal that is safe to inline directly\n// into a MySQL statement string. Used because this n8n version's\n// queryReplacement / \"?\" placeholder binding does not reliably work\n// (confirmed across multiple attempts) -- so instead of parameter\n// binding, we build the full, already-escaped SQL text here in JS,\n// and the MySQL node downstream just executes that finished string\n// via {{ $json.sql }}. No placeholders left for n8n to mishandle.\nfunction sqlEscape(value) {\n  if (value === null || value === undefined) return 'NULL';\n  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : 'NULL';\n  if (typeof value === 'boolean') return value ? '1' : '0';\n  const str = typeof value === 'string' ? value : JSON.stringify(value);\n  const escaped = str.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, \"\\\\'\");\n  return \"'\" + escaped + \"'\";\n}\n\nfunction simpleHash(str) {\n  let h1 = 0x811c9dc5, h2 = 0x01000193;\n  for (let i = 0; i < str.length; i++) {\n    const c = str.charCodeAt(i);\n    h1 ^= c; h1 = Math.imul(h1, 0x01000193);\n    h2 ^= c; h2 = Math.imul(h2, 0x85ebca6b);\n  }\n  const p1 = (h1 >>> 0).toString(16).padStart(8, '0');\n  const p2 = (h2 >>> 0).toString(16).padStart(8, '0');\n  return (p1 + p2).repeat(4).slice(0, 64);\n}\n\nconst out = [];\nfor (const item of $input.all()) {\n  const b    = item.json.body ?? item.json;\n  const hdrs = item.json.headers ?? {};\n  const question = String(b.question ?? '').trim();\n  if (question.length === 0) throw new Error('Missing required field: question');\n  if (question.length > 4000) throw new Error('Question exceeds 4000 characters');\n  const email = String(b.student_email ?? '').trim().toLowerCase();\n  const supplied = String(hdrs['x-idempotency-key'] ?? '').trim();\n  const idempotency_key = supplied.length > 0 && supplied.length <= 64\n    ? supplied\n    : simpleHash(`${email}|${String(b.student_id ?? '').trim()}|${question}`);\n\n  const student_name = String(b.student_name ?? '').trim() || null;\n  const student_id   = String(b.student_id   ?? '').trim() || null;\n  const channel       = 'webhook';\n\n  const insert_sql = `INSERT INTO ticket_requests\n  (student_name, student_email, student_id, channel, idempotency_key, question, status)\nVALUES\n  (${sqlEscape(student_name)}, ${sqlEscape(email || null)}, ${sqlEscape(student_id)}, ${sqlEscape(channel)}, ${sqlEscape(idempotency_key)}, ${sqlEscape(question)}, 'new')\nON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id);`;\n\n  out.push({ json: {\n    student_name,\n    student_email: email || null,\n    student_id,\n    channel,\n    idempotency_key,\n    question,\n    received_at: new Date().toISOString(),\n    insert_sql,\n  }});\n}\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        0
+      ],
+      "id": "aa00ce8d-a149-475e-9e72-d530d228f115",
+      "name": "Normalize Input"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.insert_sql }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        480,
+        0
+      ],
+      "id": "180a3a49-f4c4-4a93-afeb-a3660193d5da",
+      "name": "Insert Ticket",
+      "credentials": {
+        "mySql": {
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.inceptionlabs.ai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"mercury-2.5\",\n  \"temperature\": 0,\n  \"max_tokens\": 1000,\n  \"response_format\": {\n    \"type\": \"json_schema\",\n    \"json_schema\": {\n      \"name\": \"ticket_classification\",\n      \"strict\": true,\n      \"schema\": {\n        \"type\": \"object\",\n        \"properties\": {\n          \"category\": {\n            \"type\": \"string\",\n            \"enum\": [\"registration\",\"billing\",\"exams\",\"library\",\"records\",\"it-support\",\"financial-aid\",\"general\"]\n          },\n          \"priority\":  { \"type\": \"string\", \"enum\": [\"low\",\"normal\",\"high\",\"urgent\"] },\n          \"confidence\":{ \"type\": \"number\", \"minimum\": 0, \"maximum\": 1 },\n          \"reasoning\": { \"type\": \"string\", \"maxLength\": 240 }\n        },\n        \"required\": [\"category\",\"priority\",\"confidence\",\"reasoning\"],\n        \"additionalProperties\": false\n      }\n    }\n  },\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"You classify inbound student-support questions for a university. Choose the single best category from the allowed enum. Priority reflects urgency to the student, not topic severity: 'urgent' is reserved for deadlines within 48h, blocked graduation, or a locked account they cannot recover. Never invent a category outside the enum. Confidence is your own calibrated estimate that the category is correct.\" },\n    { \"role\": \"user\", \"content\": {{ JSON.stringify($('Normalize Input').first().json.question) }} }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        704,
+        0
+      ],
+      "id": "f3bddf39-aeca-4827-b287-6e89cab82156",
+      "name": "Classify",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "InceptionLabs"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const ALLOWED_CATEGORIES = new Set(['registration','billing','exams','library','records','it-support','financial-aid','general']);\nconst ALLOWED_PRIORITIES = new Set(['low','normal','high','urgent']);\n\nfunction sqlEscape(value) {\n  if (value === null || value === undefined) return 'NULL';\n  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : 'NULL';\n  if (typeof value === 'boolean') return value ? '1' : '0';\n  const str = typeof value === 'string' ? value : JSON.stringify(value);\n  const escaped = str.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, \"\\\\'\");\n  return \"'\" + escaped + \"'\";\n}\n\nconst upstream = $('Insert Ticket').first().json;\nconst norm     = $('Normalize Input').first().json;\nconst raw      = $input.first().json;\n\nlet parsed = null;\nlet failureReason = null;\n\nif (raw && raw.error) {\n  failureReason = `http: ${raw.error.message ?? 'request failed'}`;\n} else {\n  try {\n    const content = raw?.choices?.[0]?.message?.content;\n    if (typeof content !== 'string') throw new Error('No message content in response');\n    let cleaned = content.replace(/^\\s*```(?:json)?\\s*/i, '').replace(/\\s*```\\s*$/, '').trim();\n    const m = cleaned.match(/\\{[\\s\\S]*\\}/);  // tolerate text around the JSON\n    if (m) cleaned = m[0];\n    parsed = JSON.parse(cleaned);\n  } catch (err) {\n    failureReason = `parse: ${err.message}`;\n  }\n  if (parsed) {\n    if (!ALLOWED_CATEGORIES.has(parsed.category)) { failureReason = `bad category: ${parsed.category}`; parsed = null; }\n    else if (!ALLOWED_PRIORITIES.has(parsed.priority)) { failureReason = `bad priority: ${parsed.priority}`; parsed = null; }\n    else if (typeof parsed.confidence !== 'number' || parsed.confidence < 0 || parsed.confidence > 1) { failureReason = `bad confidence: ${parsed.confidence}`; parsed = null; }\n  }\n}\n\nconst question = norm.question;\nconst kb_search_sql = `SELECT\n  id,\n  title,\n  content,\n  category,\n  MATCH(title, content, keywords)\n    AGAINST (${sqlEscape(question)} IN NATURAL LANGUAGE MODE) AS relevance\nFROM knowledge_base\nWHERE is_active = 1\n  AND MATCH(title, content, keywords)\n      AGAINST (${sqlEscape(question)} IN NATURAL LANGUAGE MODE)\nORDER BY relevance DESC\nLIMIT 5;`;\n\nreturn [{ json: {\n  ticket_id:       upstream.insertId,\n  question,\n  category:        parsed ? parsed.category   : 'general',\n  priority:        parsed ? parsed.priority   : 'normal',\n  confidence:      parsed ? parsed.confidence : 0,\n  reasoning:       parsed ? parsed.reasoning  : null,\n  classified:      Boolean(parsed),\n  failure:         failureReason,\n  idempotency_key: norm.idempotency_key,\n  kb_search_sql,\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        0
+      ],
+      "id": "3cb847f6-79b6-41b2-b7d5-dc53a206c5eb",
+      "name": "Validate Classification"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.kb_search_sql }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        1152,
+        0
+      ],
+      "id": "3faaa551-886c-499a-b069-164d848a1fa1",
+      "name": "Search Knowledge Base",
+      "credentials": {
+        "mySql": {
+          "name": "MySQL account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Node 07 \"Build Answer Context\"\n// Search Knowledge Base has alwaysOutputData=true, so when MySQL finds\n// zero rows this node still receives one EMPTY item ({}), which is\n// filtered out below (no id) -> hits = [] -> sufficient_knowledge=false\n// -> the workflow goes to \"No KB Match\" and the ticket is escalated.\n// Tuning knob: minimum MySQL relevance score to auto-answer.\n// Set here instead of reading $env, because N8N_BLOCK_ENV_ACCESS_IN_NODE\n// is on and blocks $env inside Code nodes. Edit this number to tune it\n// against your own knowledge_base content (see BUILD.md).\n// InnoDB relevance scores are corpus-relative and low on a small KB:\n// clear matches score ~2-10, off-topic questions ~0-1. 4.0 rejected valid\n// questions, so the cutoff is 1.5. The answer LLM is instructed to say\n// \"not covered\" if the excerpts don't actually contain the answer.\n// InnoDB relevance scores are corpus-relative (tiny on a small KB), so an\n// absolute cutoff kept rejecting valid questions. The SQL already requires\n// MATCH(...) > 0, so \"at least one hit\" is the real gate; this is only a floor.\n// The answer LLM is instructed to say \"not covered\" if the excerpts don't\n// contain the answer, so a weak hit can't produce an invented answer.\nconst KB_MATCH_THRESHOLD = 0.05;\n// Classification is metadata. Only block if the classifier ran successfully\n// AND is clearly unsure; a failed/unparsable classification must not block.\nconst MIN_CLASS_CONFIDENCE = 0.3;\n\nconst cls = $('Validate Classification').first().json;\nconst raw = $input.all();\n\nconst hits     = raw.filter(i => !i.json.error && i.json.id != null).map(i => i.json);\nconst kbFailed = raw.length > 0 && raw[0].json.error != null;\n\nconst scoreOf  = h => { const n = Number(h.relevance); return Number.isFinite(n) ? n : 0; };\nconst scores   = hits.map(scoreOf);\nconst topScore = scores.length ? scores[0] : 0;\n// score unknown (0) but rows came back -> keep them all\nconst kept = topScore > 0 ? hits.filter(h => scoreOf(h) >= topScore * 0.15) : hits;\n\nconst scoreOk = topScore === 0 || topScore >= KB_MATCH_THRESHOLD;\nconst confOk  = !cls.classified || Number(cls.confidence) >= MIN_CLASS_CONFIDENCE;\n\nconst sufficient_knowledge = !kbFailed && kept.length > 0 && scoreOk && confOk;\n\nlet insufficient_reason = null;\nif (!sufficient_knowledge) {\n  if (kbFailed) insufficient_reason = 'kb_search_failed';\n  else if (hits.length === 0) insufficient_reason = 'no_kb_hits';\n  else if (!scoreOk) insufficient_reason = 'low_relevance';\n  else insufficient_reason = 'low_classification_confidence';\n}\n\nconst context = kept.map((h, i) => `[${i + 1}] ${h.title} (category: ${h.category})\\n${h.content}`).join('\\n\\n').slice(0, 12000);\nconst userPrompt = 'Question:\\n' + cls.question + '\\n\\nKnowledge-base excerpts:\\n' + (context || '(no relevant excerpts found)');\n\nreturn [{ json: {\n  ticket_id:       cls.ticket_id,\n  question:        cls.question,\n  category:        cls.category,\n  priority:        cls.priority,\n  confidence:      cls.confidence,\n  classified:      cls.classified,\n  failure:         cls.failure,\n  kb_failed:       kbFailed,\n  matched_kb_ids:  kept.map(h => h.id),\n  has_context:     kept.length > 0,\n  sufficient_knowledge,\n  insufficient_reason,\n  top_score:       topScore,\n  all_scores:      scores,\n  kb_threshold:    KB_MATCH_THRESHOLD,\n  context,\n  user_prompt:     userPrompt,\n  idempotency_key: cls.idempotency_key,\n}}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        0
+      ],
+      "id": "fd42c97e-aa50-404f-b217-03bbabbb247d",
+      "name": "Build Answer Context"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "0f6e2b1a-8b2b-4a8e-9b1a-6a2b3c4d5e6f",
+              "leftValue": "={{ $json.sufficient_knowledge }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1600,
+        0
+      ],
+      "id": "e1c2a3b4-5d6e-4f70-8a91-b2c3d4e5f601",
+      "name": "Check KB Match"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Runs only when Build Answer Context found nothing above the\n// relevance cutoff (has_context === false). Skips the LLM call\n// entirely and writes an explicit, honest 'not in the knowledge\n// base' answer instead of letting the model improvise or return\n// an empty/blank response.\nfunction sqlEscape(value) {\n  if (value === null || value === undefined) return 'NULL';\n  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : 'NULL';\n  if (typeof value === 'boolean') return value ? '1' : '0';\n  const str = typeof value === 'string' ? value : JSON.stringify(value);\n  const escaped = str.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, \"\\\\'\");\n  return \"'\" + escaped + \"'\";\n}\n\nconst ctx = $input.first().json;\n\nconst answer = \"This question isn't covered in the knowledge base yet. Your request has been logged and a staff member will follow up directly.\";\nconst answered = false;\nconst status = 'escalated';\nconst matchedKbJson = JSON.stringify(ctx.matched_kb_ids ?? []);\nconst errorMessage = `escalated: ${ctx.insufficient_reason ?? 'unknown'} (top_score=${ctx.top_score}, threshold=${ctx.kb_threshold}, confidence=${ctx.confidence})`;\n\nconst update_sql = `UPDATE ticket_requests\nSET\n  category       = ${sqlEscape(ctx.category)},\n  priority       = ${sqlEscape(ctx.priority)},\n  confidence     = ${sqlEscape(ctx.confidence)},\n  status         = ${sqlEscape(status)},\n  answer         = ${sqlEscape(answer)},\n  matched_kb_ids = ${sqlEscape(matchedKbJson)},\n  error_message  = ${sqlEscape(errorMessage)}\nWHERE idempotency_key = ${sqlEscape(ctx.idempotency_key)};`;\n\nreturn [{ json: {\n  ...ctx,\n  answer,\n  answered,\n  model_used: null,\n  usage: null,\n  update_sql,\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        176
+      ],
+      "id": "f2d3e4c5-6b7a-4890-9c1d-2e3f4a5b6c7d",
+      "name": "No KB Match"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.inceptionlabs.ai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: \"mercury-2.5\", temperature: 0.5, max_tokens: 2000, messages: [ { role: \"system\", content: \"You answer university student-support questions using ONLY the provided knowledge-base excerpts. Rules: (1) If the excerpts do not contain the answer, say so plainly and tell the student which office to contact \u2014 do not guess. (2) Cite the excerpt numbers you relied on, like [1] or [2][3]. (3) Never invent deadlines, fees, or policy details that are not in the excerpts. (4) Keep the answer under 200 words, in plain prose, no markdown headings.\" }, { role: \"user\", content: $json.user_prompt } ] }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1824,
+        -160
+      ],
+      "id": "b0118303-c03a-4b01-ba2a-56b247299825",
+      "name": "Generate Answer",
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "InceptionLabs"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "function sqlEscape(value) {\n  if (value === null || value === undefined) return 'NULL';\n  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : 'NULL';\n  if (typeof value === 'boolean') return value ? '1' : '0';\n  const str = typeof value === 'string' ? value : JSON.stringify(value);\n  const escaped = str.replace(/\\\\/g, '\\\\\\\\').replace(/'/g, \"\\\\'\");\n  return \"'\" + escaped + \"'\";\n}\n\nconst ctx = $('Build Answer Context').first().json;\nconst raw = $input.first().json;\n\nlet answer, answered;\nif (raw && raw.error) {\n  answer = 'We could not generate an answer for this request. A staff member will follow up.';\n  answered = false;\n} else {\n  const content = raw?.choices?.[0]?.message?.content?.trim();\n  answer = content || 'We could not generate an answer for this request. A staff member will follow up.';\n  answered = Boolean(content);\n}\n\nconst status        = answered ? 'answered' : 'failed';\nconst errorMessage  = ctx.kb_failed ? 'kb search failed' : ctx.failure;\nconst matchedKbJson = JSON.stringify(ctx.matched_kb_ids ?? []);\n\nconst update_sql = `UPDATE ticket_requests\nSET\n  category       = ${sqlEscape(ctx.category)},\n  priority       = ${sqlEscape(ctx.priority)},\n  confidence     = ${sqlEscape(ctx.confidence)},\n  status         = ${sqlEscape(status)},\n  answer         = ${sqlEscape(answer)},\n  matched_kb_ids = ${sqlEscape(matchedKbJson)},\n  error_message  = ${sqlEscape(errorMessage)}\nWHERE idempotency_key = ${sqlEscape(ctx.idempotency_key)};`;\n\nreturn [{ json: {\n  ...ctx,\n  answer,\n  answered,\n  model_used: raw?.model ?? null,\n  usage: raw?.usage ?? null,\n  update_sql,\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1936,
+        0
+      ],
+      "id": "6450bd87-9e55-49d4-9ca9-bef115923f27",
+      "name": "Extract Answer"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.update_sql }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        2160,
+        0
+      ],
+      "id": "c92cc3c4-ae52-417e-a169-565aadb3c529",
+      "name": "Update Ticket",
+      "credentials": {
+        "mySql": {
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Both branches converge on Update Ticket -> Compose Reply, but only ONE of\n// 'Extract Answer' (KB match -> LLM) or 'No KB Match' (escalated) runs.\n// Notes:\n//  - Referencing a node that didn't run throws, so each lookup is guarded.\n//  - Do NOT read from 'Check KB Match' here: it is an IF node with two\n//    outputs and $('Check KB Match').first() returns undefined when the\n//    branch can't be resolved. 'Build Answer Context' has one output and\n//    carries the same fields.\nfunction getJson(name) {\n  try {\n    const item = $(name).first();\n    return item ? item.json : null;\n  } catch (e) {\n    return null;                       // node didn't run in this execution\n  }\n}\n\nconst n   = getJson('Normalize Input') ?? {};\nconst ctx = getJson('Build Answer Context') ?? {};\n\nconst d = ctx.sufficient_knowledge\n  ? (getJson('Extract Answer') ?? getJson('No KB Match'))\n  : (getJson('No KB Match')    ?? getJson('Extract Answer'));\n\nif (!d) throw new Error('Compose Reply: neither Extract Answer nor No KB Match produced output');\n\nconst ticketCode = 'REQ-' + String(n.idempotency_key || '').slice(0, 8).toUpperCase();\nconst status = d.answered ? 'auto_resolved' : 'waiting_for_human';\n\nreturn [{ json: {\n  ticket_code: ticketCode,\n  ticket_id:   ticketCode,\n  category:    d.category,\n  priority:    d.priority,\n  status,\n  answer:      d.answer,\n  sources:     d.matched_kb_ids ?? [],\n  // debug: remove once tuned\n  debug: {\n    reason:     ctx.insufficient_reason,\n    top_score:  ctx.top_score,\n    all_scores: ctx.all_scores,\n    threshold:  ctx.kb_threshold,\n    confidence: ctx.confidence,\n    classified: ctx.classified,\n    failure:    ctx.failure,\n  },\n}}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2384,
+        0
+      ],
+      "id": "6473e391-9f6c-4a7c-b136-782551ef8be3",
+      "name": "Compose Reply"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2608,
+        0
+      ],
+      "id": "a6ce01d0-af0a-429c-8306-10e2e5ec826b",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Insert Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Ticket": {
+      "main": [
+        [
+          {
+            "node": "Classify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify": {
+      "main": [
+        [
+          {
+            "node": "Validate Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Classification": {
+      "main": [
+        [
+          {
+            "node": "Search Knowledge Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Knowledge Base": {
+      "main": [
+        [
+          {
+            "node": "Build Answer Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Answer Context": {
+      "main": [
+        [
+          {
+            "node": "Check KB Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Answer": {
+      "main": [
+        [
+          {
+            "node": "Extract Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Answer": {
+      "main": [
+        [
+          {
+            "node": "Update Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Ticket": {
+      "main": [
+        [
+          {
+            "node": "Compose Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Reply": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check KB Match": {
+      "main": [
+        [
+          {
+            "node": "Generate Answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No KB Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No KB Match": {
+      "main": [
+        [
+          {
+            "node": "Update Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "fixed-sql-binding-v1",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "56e52de8d10622dd2e329dc2affc845259642396c988cdcfa83bfb4e0918a15b"
+  },
+  "nodeGroups": [],
+  "id": "jFZErrcEqYTi60EF-fixed",
+  "tags": []
+}

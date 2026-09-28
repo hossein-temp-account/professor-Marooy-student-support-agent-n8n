@@ -1,0 +1,134 @@
+===============================================================
+ STUDENT SUPPORT AGENT - SETUP & OPERATIONS GUIDE
+===============================================================
+
+PROJECT LOCATION
+-----------------
+C:\Users\...
+Always run docker compose commands from this exact folder
+(the one containing docker-compose.yml and .env).
+
+
+===============================================================
+ 1. DAILY COMMANDS (PowerShell)
+===============================================================
+
+Start everything:
+    docker compose up -d
+
+Stop everything (keeps all data):
+    docker compose down
+
+Check status of all 3 containers:
+    docker compose ps
+
+View logs (live, follow mode):
+    docker compose logs -f n8n
+    docker compose logs -f mysql
+    docker compose logs -f admin
+
+View logs (full dump, no follow):
+    docker compose logs n8n
+
+Restart just one service after changing its files:
+    docker compose up -d --force-recreate admin
+
+FULL RESET (deletes all data - tickets, KB entries, n8n workflows):
+    docker compose down -v
+
+
+===============================================================
+ 2. URLS
+===============================================================
+
+n8n editor:      http://localhost:5678
+Admin panel:     http://localhost:4000/admin
+Frontend widget: open frontend/index.html directly, or serve it:
+                 python3 -m http.server 8080   (then http://localhost:8080)
+
+
+===============================================================
+ 3. CREDENTIALS SET UP IN N8N
+===============================================================
+
+--- Credential 1: OpenRouter (Header Auth) ---
+Used by: the two OpenRouter HTTP nodes (Classify, Generate Answer)
+Type:    Header Auth
+Name field:  Authorization
+Value field: Bearer <your real OpenRouter API key>
+             (must include the word "Bearer" and a space before the key)
+Get/check your key at: https://openrouter.ai/keys
+
+--- Credential 2: MySQL ---
+Used by: all SQL nodes (Insert Ticket, Search KB, etc.)
+Type:    MySQL
+Host:      mysql              <- Docker service name, NOT localhost
+Port:      3306
+Database:  support_agent      <- must match MYSQL_DATABASE in .env
+User:      support_app        <- must match MYSQL_USER in .env
+Password:  (must match MYSQL_PASSWORD in .env)
+
+Rule of thumb: every value in the MySQL credential must be copy-
+identical to what's written in .env. If you ever change .env,
+update the credential in n8n to match (n8n does not read .env
+automatically for this).
+
+
+===============================================================
+ 4. ADMIN PANEL LOGIN
+===============================================================
+
+URL:      http://localhost:4000/admin
+Username: value of ADMIN_USERNAME in .env
+Password: value of ADMIN_PASSWORD in .env
+
+
+===============================================================
+ 5. COMMON PROBLEMS & FIXES (from what we hit already)
+===============================================================
+
+"Container name already in use"
+  -> docker rm -f support_mysql support_n8n support_admin
+  -> then docker compose up -d again
+
+"Database is uninitialized and password option is not specified"
+  -> means MySQL's data volume is stale/broken from an earlier
+     attempt. Find and remove it:
+     docker volume ls
+     docker volume rm <project>_mysql_data
+  -> then docker compose up -d again (MySQL will fully
+     re-initialize using schema.sql + seed.sql)
+
+"Mismatching encryption keys" (n8n keeps restarting)
+  -> N8N_ENCRYPTION_KEY in .env doesn't match what's saved in
+     n8n's data volume. Either:
+     a) put back the exact key that was used before, OR
+     b) if there's nothing important saved yet, wipe the volume:
+        docker volume rm <project>_n8n_data
+        docker compose up -d
+        (n8n will ask you to create a new owner account)
+
+Old volumes pile up when you re-extract/rename the project folder,
+because Docker names volumes after the folder name. Use
+"docker volume ls" occasionally to spot and clean up orphans from
+old folder names (e.g. "...-fixed7_..." vs an older "...-n8n_...").
+
+
+===============================================================
+ 6. NOTES
+===============================================================
+
+- Never put the OpenRouter key inside .env as a real value beyond
+  the placeholder comment - it belongs only in n8n's credential
+  store (N8N_BLOCK_ENV_ACCESS_IN_NODE is on, so nodes can't read
+  .env directly anyway).
+
+- N8N_ENCRYPTION_KEY protects all saved n8n credentials. If you
+  ever back up this project, back up this key separately too -
+  losing it makes saved credentials permanently unreadable.
+
+- This admin panel uses a single hardcoded admin account (no user
+  table). Fine for personal/small-team use on your own machine;
+  don't expose port 4000 or 5678 to the public internet without a
+  reverse proxy in front.
+===============================================================

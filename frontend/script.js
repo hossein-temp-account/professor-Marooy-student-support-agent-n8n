@@ -26,8 +26,9 @@ const STRINGS = {
     "result.status": "وضعیت",
     "result.error": "در ارتباط با سامانه مشکلی پیش آمد. لطفاً دوباره تلاش کنید.",
     "result.notFound": "پاسخ این سوال هنوز در پایگاه دانش ثبت نشده است. درخواست شما برای بررسی کارشناس ثبت شد.",
-    "status.auto_resolved": "پاسخ خودکار",
-    "status.waiting_for_human": "در انتظار بررسی کارشناس",
+    "status.answered": "پاسخ خودکار",
+    "status.escalated": "در انتظار بررسی کارشناس",
+    "status.failed": "خطا در پردازش",
     "footer.note": "این سامانه یک پروژهٔ دانشگاهی برای نمایش گردش‌کار هوشمند n8n است.",
   },
   en: {
@@ -49,8 +50,9 @@ const STRINGS = {
     "result.status": "Status",
     "result.error": "Something went wrong reaching the system. Please try again.",
     "result.notFound": "This question hasn't been added to the knowledge base yet. Your request has been logged for staff review.",
-    "status.auto_resolved": "Answered automatically",
-    "status.waiting_for_human": "Waiting for staff review",
+    "status.answered": "Answered automatically",
+    "status.escalated": "Waiting for staff review",
+    "status.failed": "Processing error",
     "footer.note": "This is a university project demonstrating an n8n-based intelligent workflow.",
   },
 };
@@ -163,9 +165,25 @@ form.addEventListener("submit", async (e) => {
       body: JSON.stringify(payload),
     });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    renderOutcome(data);
+    // A non-2xx status alone isn't proof the request failed to reach
+    // the student: n8n can return a non-200 status from a branch that
+    // still produced a valid "escalated to staff" body. Try to parse
+    // the body first, and only fall back to the generic connection
+    // error if there's genuinely no usable response in it.
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+
+    if (data && (data.status || data.ticket_code)) {
+      renderOutcome(data);
+    } else if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    } else {
+      renderOutcome(data || {});
+    }
   } catch (err) {
     console.error("Request failed:", err);
     showStub(stubError);
@@ -176,15 +194,19 @@ form.addEventListener("submit", async (e) => {
 
 function renderOutcome(data) {
   const dict = STRINGS[lang];
-  document.getElementById("ticketCode").textContent = data.ticket_code || "—";
+  document.getElementById("ticketCode").textContent = data.ticket_id || "—";
 
   const badge = document.getElementById("statusBadge");
-  const status = data.status || "waiting_for_human";
+  // The workflow replies with auto_resolved / waiting_for_human; the UI
+  // (and the DB enum) use answered / escalated / failed.
+  const STATUS_MAP = { auto_resolved: "answered", waiting_for_human: "escalated" };
+  const rawStatus = data.status || "escalated";
+  const status = STATUS_MAP[rawStatus] || rawStatus;
   badge.dataset.state = status;
   badge.textContent = dict[`status.${status}`] || status;
 
   const answerEl = document.getElementById("answerText");
-  const notFound = status === "waiting_for_human";
+  const notFound = status === "escalated";
 
   if (notFound) {
     answerEl.innerHTML =
@@ -198,7 +220,7 @@ function renderOutcome(data) {
       '</div>';
     answerEl.querySelector(".stub__notfound-text").textContent = data.answer || dict["result.notFound"];
   } else {
-    answerEl.textContent = data.answer || "";
+    answerEl.textContent = data.answer || (status === "failed" ? dict["result.error"] : "");
   }
 
   showStub(stubOutcome);
