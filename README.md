@@ -27,7 +27,7 @@ reaches a terminal state rather than sitting in `new` forever.
 ## Requirements
 
 - Docker and Docker Compose
-- An OpenRouter API key with access to `openai/gpt-4o-mini` (or any
+- An OpenRouter API key with access to `inclusionai/ling-3.0-flash-sante:free` (or any
   model that honors `json_schema` strictly)
 - ~2 GB RAM for the pair of containers
 
